@@ -193,6 +193,8 @@ int main(void) {
 
   SystemClock_Config();
 
+  HAL_Delay(STARTUP_DELAY_MS); // Wait to prevent spurious power-on when MCU is briefly back-powered (e.g. via UART). If the supply disappears, the MCU will simply lose power and not latch on.
+
   __HAL_RCC_DMA1_CLK_DISABLE();
   MX_GPIO_Init();
   MX_TIM_Init();
