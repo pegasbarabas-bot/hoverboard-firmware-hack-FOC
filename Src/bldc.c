@@ -81,6 +81,23 @@ static int16_t offsetdcr    = 2000;
 int16_t        batVoltage       = (400 * BAT_CELLS * BAT_CALIB_ADC) / BAT_CALIB_REAL_VOLTAGE;
 static int32_t batVoltageFixdt  = (400 * BAT_CELLS * BAT_CALIB_ADC) / BAT_CALIB_REAL_VOLTAGE << 16;  // Fixed-point filter output initialized at 400 V*100/cell = 4 V/cell converted to fixed-point
 
+#ifdef ENABLE_ODOMETRY
+int16_t odom_l = 0;
+int16_t odom_r = 0;
+
+static uint16_t wp_l_prev = 0;
+static uint16_t wp_r_prev = 0;
+
+static int16_t hallTickModulo(int16_t m, int16_t n) {
+  return (((m % n) + n) % n);
+}
+
+static int16_t hallTickDirection(int16_t prev, int16_t curr) {
+  static const uint16_t dir_lut[6] = {0, -1, -2, 0, 2, 1};
+  return dir_lut[hallTickModulo(prev - curr, 6)];
+}
+#endif
+
 // =================================
 // DMA interrupt frequency =~ 16 kHz
 // =================================
@@ -202,6 +219,14 @@ void DMA1_Channel1_IRQHandler(void) {
   // motSpeedLeft = rtY_Left.n_mot;
   // motAngleLeft = rtY_Left.a_elecAngle;
 
+#ifdef ENABLE_ODOMETRY
+    // Hall sensor tick counter (left)
+    uint8_t encoding = (uint8_t)((hall_ul << 2) + (hall_vl << 1) + hall_wl);
+    int wheel_pos = rtConstP.vec_hallToPos_Value[encoding];
+    odom_l = hallTickModulo(odom_l + hallTickDirection(wp_l_prev, wheel_pos), 9000);
+    wp_l_prev = wheel_pos;
+#endif
+
     /* Apply commands */
     LEFT_TIM->LEFT_TIM_U    = (uint16_t)CLAMP(ul + pwm_res / 2, pwm_margin, pwm_res-pwm_margin);
     LEFT_TIM->LEFT_TIM_V    = (uint16_t)CLAMP(vl + pwm_res / 2, pwm_margin, pwm_res-pwm_margin);
@@ -239,6 +264,14 @@ void DMA1_Channel1_IRQHandler(void) {
  // errCodeRight  = rtY_Right.z_errCode;
  // motSpeedRight = rtY_Right.n_mot;
  // motAngleRight = rtY_Right.a_elecAngle;
+
+#ifdef ENABLE_ODOMETRY
+    // Hall sensor tick counter (right)
+    encoding = (uint8_t)((hall_ur << 2) + (hall_vr << 1) + hall_wr);
+    wheel_pos = rtConstP.vec_hallToPos_Value[encoding];
+    odom_r = hallTickModulo(odom_r - hallTickDirection(wp_r_prev, wheel_pos), 9000);
+    wp_r_prev = wheel_pos;
+#endif
 
     /* Apply commands */
     RIGHT_TIM->RIGHT_TIM_U  = (uint16_t)CLAMP(ur + pwm_res / 2, pwm_margin, pwm_res-pwm_margin);

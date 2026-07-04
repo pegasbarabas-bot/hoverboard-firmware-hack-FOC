@@ -110,6 +110,10 @@
 #define TEMP_POWEROFF           650       // overheat poweroff. (while not driving) [°C * 10]. Here 65.0 °C
 // ######################## END OF TEMPERATURE ###############################
 
+// ############################### ODOMETRY ######################################
+// #define ENABLE_ODOMETRY                   // [-] Enable hall sensor tick counters for wheel odometry (adds wheelR_cnt / wheelL_cnt to serial feedback)
+// ########################### END OF ODOMETRY ###################################
+
 
 
 // ############################### MOTOR CONTROL #########################
